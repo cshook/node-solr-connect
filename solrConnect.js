@@ -1,8 +1,12 @@
 var http = require('http');
+var externalCallback = null;
 
-var solrConnect = function(settings, responseHandler){
+var solrConnect = function(settings, responseHandler, callbackFunction){
     this.settings = settings;
     this.responseHandler = responseHandler;
+    if (callbackFunction != null){
+        externalCallback = callbackFunction;
+    }
 };
 
 solrConnect.prototype = {
@@ -73,7 +77,12 @@ solrConnect.prototype = {
     },
 
     // Function to get data from solr
-    getData:function (queryString){
+    getData:function (queryString, cursorMark){
+        if (typeof cursorMark === 'undefined') {
+            queryString = queryString.concat('&cursorMark=*');
+        } else {
+            queryString = queryString.concat('&cursorMark=', cursorMark);
+        }
         connectionParams = new this.createConnection('GET', this.settings, null);
         connectionParams.path = connectionParams.path.concat(queryString);
         this.postRequest(connectionParams, '', 'data_only');
@@ -86,41 +95,89 @@ solrConnect.prototype = {
         this.postRequest(connectionParams, '', 'facets_only');
     },
 
-    // Function to get facets from solr
+    // Function to get data & facets from solr
     getDataFacets:function (queryString){
+        if (typeof cursorMark === 'undefined') {
+            queryString = queryString.concat('&cursorMark=*');
+        } else {
+            queryString = queryString.concat('&cursorMark=', cursorMark);
+        }
         connectionParams = new this.createConnection('GET', this.settings, null);
         connectionParams.path = connectionParams.path.concat(queryString);
         this.postRequest(connectionParams, '', 'data_facets');
+    },
+
+    // Function to get record count from solr
+    getRecordCount:function (queryString){
+        connectionParams = new this.createConnection('GET', this.settings, null);
+        connectionParams.path = connectionParams.path.concat(queryString);
+        this.postRequest(connectionParams, '', 'record_count');
     },
 
 
     // Function to return data from solr back to requesting function
     returnResponse:function (objResponse, responseHandler, parseResponse){
         objResponse = JSON.parse(objResponse);
+
+        // Add cursor mark for pagination to response since it lives outside of response by defualt - this allows us to return just the data when making a data only
+        if (typeof objResponse.nextCursorMark !== 'undefined'){
+            objResponse.response.nextCursorMark = objResponse.nextCursorMark
+        }
+
+        if (responseHandler != null){
         responseHandler.setHeader('Content-Type', 'application/json');
+        }
         switch (parseResponse) {
 
             case 'data_only':
+                if (responseHandler == null){
+                    externalCallback(objResponse.response);
+                } else {
                 responseHandler.send(objResponse.response);
+                }
             break;
 
             case 'full_response':
+                if (responseHandler == null){
+                    externalCallback(objResponse);
+                } else {
                 responseHandler.send(objResponse);
+                }
             break;
 
             case 'facets_only':
+                if (responseHandler == null){
+                    externalCallback(objResponse.facet_counts.facet_fields);
+                } else {
                 responseHandler.send(objResponse.facet_counts.facet_fields);
+                }
             break;
 
             case 'data_facets':
                 tmpResponse = {data:{},facet_counts:{}};
                 tmpResponse.data = objResponse.response;
                 tmpResponse.facet_counts = objResponse.facet_counts.facet_fields;
+                if (responseHandler == null){
+                    externalCallback(tmpResponse);
+                } else {
                 responseHandler.send(tmpResponse);
+                }
+            break;
+
+            case 'record_count':
+                if (responseHandler == null){
+                    externalCallback(objResponse.response.numFound);
+                } else {
+                    responseHandler.send(objResponse.response.numFound);
+                }
             break;
 
             default:
+                if (responseHandler == null){
+                    externalCallback(objResponse);
+                } else {
                 responseHandler.send(objResponse);
+                }
             break;
         }
     },
