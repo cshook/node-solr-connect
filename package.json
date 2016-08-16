@@ -1,6 +1,6 @@
 {
   "name": "node-solr-connect",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Solr connection client for NodeJS",
   "main": "solrConnect.js",
   "scripts": {
