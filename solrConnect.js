@@ -28,6 +28,7 @@ solrConnect.prototype = {
         objConnection.port = settings.solrPort;
         objConnection.path = path;
         objConnection.method = method;
+        objConnection.coreName = settings.solrCore;
         return objConnection;
     },
 
@@ -114,6 +115,12 @@ solrConnect.prototype = {
         this.postRequest(connectionParams, '', 'record_count');
     },
 
+    // Function to get field list from schema
+    getFieldList:function (){
+        connectionParams = new this.createConnection('GET', this.settings, null);
+        connectionParams.path = connectionParams.path.concat('/schema/fields');
+        this.postRequest(connectionParams, '', 'data_only');
+    },
 
     // Function to return data from solr back to requesting function
     returnResponse:function (objResponse, responseHandler, parseResponse){
