@@ -119,7 +119,7 @@ solrConnect.prototype = {
     getFieldList:function (){
         connectionParams = new this.createConnection('GET', this.settings, null);
         connectionParams.path = connectionParams.coreName.concat('/schema/fields');
-        this.postRequest(connectionParams, '', 'data_only');
+        this.postRequest(connectionParams, '', 'full_response');
     },
 
     // Function to return data from solr back to requesting function
