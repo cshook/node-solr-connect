@@ -118,7 +118,7 @@ solrConnect.prototype = {
     // Function to get field list from schema
     getFieldList:function (){
         connectionParams = new this.createConnection('GET', this.settings, null);
-        connectionParams.path = connectionParams.path.concat('/schema/fields');
+        connectionParams.path = connectionParams.coreName.concat('/schema/fields');
         this.postRequest(connectionParams, '', 'data_only');
     },
 
