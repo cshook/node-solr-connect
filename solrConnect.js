@@ -118,8 +118,16 @@ solrConnect.prototype = {
     // Function to get field list from schema
     getFieldList:function (){
         connectionParams = new this.createConnection('GET', this.settings, null);
-        connectionParams.path = connectionParams.coreName.concat('/schema/fields');
-        this.postRequest(connectionParams, '', 'full_response');
+        connectionParams.path = connectionParams.coreName.concat('/schema');
+        this.postRequest(connectionParams, '', 'fieldList');
+    },
+
+    // Function to get leader for solr clusters
+    getLeader:function(){
+        connectionParams = new this.createConnection('GET', this.settings, null);
+        connectionParams.coreName = '/solr';
+        connectionParams.path = connectionParams.coreName.concat('/admin/collections?action=OVERSEERSTATUS&wt=json');
+        this.postRequest(connectionParams, '', 'leader');
     },
 
     // Function to return data from solr back to requesting function
@@ -140,7 +148,7 @@ solrConnect.prototype = {
                 if (responseHandler == null){
                     externalCallback(objResponse.response);
                 } else {
-                responseHandler.send(objResponse.response);
+                    responseHandler.send(objResponse.response);
                 }
             break;
 
@@ -148,7 +156,7 @@ solrConnect.prototype = {
                 if (responseHandler == null){
                     externalCallback(objResponse);
                 } else {
-                responseHandler.send(objResponse);
+                    responseHandler.send(objResponse);
                 }
             break;
 
@@ -156,7 +164,7 @@ solrConnect.prototype = {
                 if (responseHandler == null){
                     externalCallback(objResponse.facet_counts.facet_fields);
                 } else {
-                responseHandler.send(objResponse.facet_counts.facet_fields);
+                    responseHandler.send(objResponse.facet_counts.facet_fields);
                 }
             break;
 
@@ -167,7 +175,7 @@ solrConnect.prototype = {
                 if (responseHandler == null){
                     externalCallback(tmpResponse);
                 } else {
-                responseHandler.send(tmpResponse);
+                    responseHandler.send(tmpResponse);
                 }
             break;
 
@@ -179,11 +187,35 @@ solrConnect.prototype = {
                 }
             break;
 
+            case 'fieldList':
+                tmpResponse = {responseHeader:objResponse.responseHeader, fields:objResponse.schema.fields}
+                if (responseHandler == null){
+                    externalCallback(tmpResponse);
+                } else {
+                    responseHandler.send(tmpResponse);
+                }
+            break;
+
+            case 'leader':
+                if (objResponse.responseHeader.status == 0){
+                    tmpArray = objResponse.leader.split('_');
+                    leaderArray = tmpArray[0].split(':');
+                    tmpResponse = {responseHeader:{status:0}, serverAddress:leaderArray[0], solrPort:leaderArray[1]};
+                } else {
+                    tmpResponse = {status:"error", message:objResponse.error.msg};
+                }
+                if (responseHandler == null){
+                    externalCallback(tmpResponse);
+                } else {
+                    responseHandler.send(tmpResponse);
+                }
+            break;
+
             default:
                 if (responseHandler == null){
                     externalCallback(objResponse);
                 } else {
-                responseHandler.send(objResponse);
+                    responseHandler.send(objResponse);
                 }
             break;
         }
